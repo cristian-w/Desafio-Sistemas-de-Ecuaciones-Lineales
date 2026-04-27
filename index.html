@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío Biología Matemática: Dendrobátidos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Iconos FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX: Renderizado de Símbolos Matemáticos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+    <!-- Librerías de Visualización -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .mat-inp { width: 100%; text-align: center; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .step-table th, .step-table td { border: 1px solid #e2e8f0; padding: 0.4rem; text-align: center; }
+        .step-table th { background-color: #f1f5f9; font-weight: 600; font-size: 0.75rem; }
+        .matrix-container::-webkit-scrollbar { height: 6px; }
+        .matrix-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- HEADER -->
+    <header class="max-w-7xl mx-auto mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+                <i class="fa-solid fa-frog text-emerald-600"></i>
+                Biología Matemática: Dendrobátidos
+            </h1>
+            <p class="text-slate-500 mt-1">Simulador interactivo de distribución farmacocinética de alcaloides</p>
+        </div>
+        
+        <div class="flex bg-slate-100 p-1 rounded-lg flex-wrap gap-1">
+            <button onclick="selectScenario(0)" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-emerald-700 shadow-sm">Caso Ideal</button>
+            <button onclick="selectScenario(1)" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:bg-slate-200">Bajo Estrés</button>
+            <button onclick="selectScenario(2)" class="tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:bg-slate-200">Mal Condicionado</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- COLUMNA IZQUIERDA -->
+        <div class="lg:col-span-5 space-y-6">
+            
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
+                    <h2 class="text-lg font-semibold">Contexto del Escenario</h2>
+                </div>
+                <p id="desc" class="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border-l-4 border-emerald-500"></p>
+                
+                <div class="text-sm text-slate-700">
+                    <p class="font-semibold mb-1">Variables ($x_n$):</p>
+                    <ul class="list-disc pl-5 space-y-1 mb-3">
+                        <li><span class="font-mono bg-slate-100 px-1 rounded text-xs">x₁</span>: Plasma sanguíneo (ng/mL)</li>
+                        <li><span class="font-mono bg-slate-100 px-1 rounded text-xs">x₂</span>: Tejido hepático (ng/g)</li>
+                        <li><span class="font-mono bg-slate-100 px-1 rounded text-xs">x₃</span>: Tejido dérmico (ng/g)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Matriz Interactiva -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-purple-500 text-xl"></i>
+                        <h2 class="text-lg font-semibold">Sistema Ax = b</h2>
+                    </div>
+                    <span class="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Interactiva</span>
+                </div>
+
+                <div class="matrix-container flex items-center gap-3 overflow-x-auto pb-4">
+                    <div id="matA" class="grid grid-cols-3 gap-2 border-l-2 border-r-2 border-slate-300 px-2"></div>
+                    <div class="text-xl font-bold text-slate-400">×</div>
+                    <div class="flex flex-col gap-2 border-l-2 border-r-2 border-slate-300 px-2">
+                        <div class="w-12 text-center text-sm font-mono p-1 bg-slate-100 rounded">x₁</div>
+                        <div class="w-12 text-center text-sm font-mono p-1 bg-slate-100 rounded">x₂</div>
+                        <div class="w-12 text-center text-sm font-mono p-1 bg-slate-100 rounded">x₃</div>
+                    </div>
+                    <div class="text-xl font-bold text-slate-400">=</div>
+                    <div id="vecB" class="flex flex-col gap-2 border-l-2 border-r-2 border-slate-300 px-2"></div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">SOR (ω): <span id="omega-val" class="font-mono text-emerald-600"></span></label>
+                        <input type="range" id="omega" min="0.1" max="1.95" step="0.01" class="w-full accent-emerald-600" oninput="updateOmegaLabel(); runAll();">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Tolerancia:</label>
+                        <input type="number" id="tol" value="0.000001" step="0.000001" class="w-full text-sm font-mono p-1 border border-slate-300 rounded focus:ring-emerald-500 outline-none" onchange="runAll()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 h-[350px] relative">
+                <div id="plot3d" class="w-full h-full"></div>
+            </div>
+
+            <!-- Tabla Resultados -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-chart-line text-emerald-500 text-xl"></i>
+                    <h2 class="text-lg font-semibold">Análisis de Desempeño</h2>
+                </div>
+                
+                <div id="kappaRow" class="mb-4 text-sm bg-slate-50 p-3 rounded-lg border border-slate-200"></div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-medium">
+                            <tr>
+                                <th class="py-2 px-4 rounded-tl-lg">Método</th>
+                                <th class="py-2 px-4 text-center">Iteraciones</th>
+                                <th class="py-2 px-4 text-center">Convergencia</th>
+                                <th class="py-2 px-4 text-center rounded-tr-lg">Solución (x₁, x₂, x₃)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN INFERIOR: PASO A PASO -->
+        <div class="col-span-1 lg:col-span-12 mt-2">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-list-ol text-blue-600 text-xl"></i>
+                    <h2 class="text-lg font-semibold select-none hover:text-blue-600 transition-colors">Detalle Algorítmico Por Iteraciones</h2>
+                </div>
+                
+                <div id="step-details" class="space-y-6">
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <!-- PCG Steps -->
+                        <div class="xl:col-span-2">
+                            <h3 class="font-bold text-slate-800 mb-2 border-b pb-1">Gradiente Conjugado Precondicionado</h3>
+                            <p class="text-xs text-slate-500 mb-2">Mostrando las primeras iteraciones. Se resuelve Mz = r en cada paso.</p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-[11px] font-mono step-table">
+                                    <thead><tr>
+                                        <th>k</th>
+                                        <th>α (Alpha)</th>
+                                        <th>β (Beta)</th>
+                                        <th>Vector ($r_k$) (Residual)</th>
+                                        <th>Vector ($z_k$) (Precondicionado)</th>
+                                        <th>Vector ($p_k$) (Dirección)</th>
+                                        <th>Aprox. ($x_{k+1}$)</th>
+                                        <th>||r||</th>
+                                    </tr></thead>
+                                    <tbody id="pcg-steps"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- SOR Steps -->
+                        <div class="xl:col-span-1">
+                            <h3 class="font-bold text-slate-800 mb-2 border-b pb-1">Método de Sobrerrelajacién Sucesiva (SOR)</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs font-mono step-table">
+                                    <thead><tr><th>k</th><th>x₁</th><th>x₂</th><th>x₃</th><th>‖Δx‖</th><th>‖Ax−b‖</th></tr></thead>
+                                    <tbody id="sor-steps"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="xl:col-span-1">
+                             <div class="h-[200px] relative">
+                                <canvas id="cvChart"></canvas>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <input type="checkbox" id="showAllIter" onchange="redrawChart()" class="accent-emerald-600 cursor-pointer">
+                                <label for="showAllIter" class="text-xs text-slate-500 cursor-pointer select-none">Mostrar <strong>todas</strong> las iteraciones usadas</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+<script>
+// ESCENARIOS
+const escenarios = [
+    {
+        desc: "Sistema Estable. Matriz diagonalmente dominante que asegura la rápida convergencia de métodos iterativos.",
+        A: [[2.45, -0.85, -0.55], [-0.85, 1.95, -0.35], [-0.55, -0.35, 1.45]],
+        b: [12.50, 5.20, 3.80],
+        w: 1.05
+    },
+    {
+        desc: "Estrés Térmico. Mayor magnitud de tasas de intercambio, pero mantiene estabilidad estructural (bien condicionado).",
+        A: [[28.50, -12.40, -8.20], [-12.40, 22.80, -5.10], [-8.20, -5.10, 18.60]],
+        b: [145.00, 85.50, 62.00],
+        w: 1.15
+    },
+    {
+        desc: "Mal Condicionado VERDADERO. El tejido hepático y dérmico son casi idénticos. Las filas 2 y 3 son 99.9% proporcionales, generando un determinante cercano a cero y planos superpuestos.",
+        A: [[5.000, -2.000, -2.000], [-2.000, 3.000, 2.999], [-2.000, 2.999, 3.000]],
+        b: [1.00, 3.999, 3.999],
+        w: 1.01
+    }
+];
+
+let cvChart = null;
+
+// Matemáticas Base
+const dot = (a, b) => a.reduce((sum, val, i) => sum + val * b[i], 0);
+const norm = (a) => Math.sqrt(dot(a, a));
+const matMulVec = (A, x) => A.map(row => dot(row, x));
+const vecSub = (a, b) => a.map((val, i) => val - b[i]);
+const vecAdd = (a, b) => a.map((val, i) => val + b[i]);
+const vecMult = (s, v) => v.map(val => s * val);
+const isSafe = (v) => isFinite(v) && !isNaN(v);
+const fmtV = (v) => `[${v[0].toFixed(3)}, ${v[1].toFixed(3)}, ${v[2].toFixed(3)}]`;
+
+// Cálculo EXACTO del Número de Condición (Norma Infinito)
+function invert3x3(A) {
+    const det = A[0][0]*(A[1][1]*A[2][2] - A[1][2]*A[2][1]) -
+                A[0][1]*(A[1][0]*A[2][2] - A[1][2]*A[2][0]) +
+                A[0][2]*(A[1][0]*A[2][1] - A[1][1]*A[2][0]);
+    if(Math.abs(det) < 1e-15) return null;
+    return [
+        [(A[1][1]*A[2][2] - A[1][2]*A[2][1])/det, (A[0][2]*A[2][1] - A[0][1]*A[2][2])/det, (A[0][1]*A[1][2] - A[0][2]*A[1][1])/det],
+        [(A[1][2]*A[2][0] - A[1][0]*A[2][2])/det, (A[0][0]*A[2][2] - A[0][2]*A[2][0])/det, (A[0][2]*A[1][0] - A[0][0]*A[1][2])/det],
+        [(A[1][0]*A[2][1] - A[1][1]*A[2][0])/det, (A[0][1]*A[2][0] - A[0][0]*A[2][1])/det, (A[0][0]*A[1][1] - A[0][1]*A[1][0])/det]
+    ];
+}
+function normInf(A) {
+    return Math.max(...A.map(row => row.reduce((sum, val) => sum + Math.abs(val), 0)));
+}
+function kappaNum(A) {
+    const invA = invert3x3(A);
+    if(!invA) return Infinity;
+    return normInf(A) * normInf(invA);
+}
+
+// Algoritmos
+// LU con pivoteo parcial (PA = LU) — evita división por cero y mejora estabilidad numérica
+function solveLU(A_orig, b_orig) {
+    const n = A_orig.length;
+    // Copias de trabajo
+    let U = A_orig.map(r => [...r]);
+    let b = [...b_orig];
+    let L = Array.from({length: n}, (_, i) => Array.from({length: n}, (_, j) => i === j ? 1 : 0));
+    let P = Array.from({length: n}, (_, i) => i); // vector de permutación
+
+    for (let k = 0; k < n; k++) {
+        // Búsqueda del pivote máximo en la columna k
+        let maxVal = Math.abs(U[k][k]), maxRow = k;
+        for (let i = k + 1; i < n; i++) {
+            if (Math.abs(U[i][k]) > maxVal) { maxVal = Math.abs(U[i][k]); maxRow = i; }
+        }
+        if (maxVal < 1e-14) throw new Error("Matriz singular o casi singular");
+
+        // Intercambio de filas en U, P y en la parte ya calculada de L
+        if (maxRow !== k) {
+            [U[k], U[maxRow]] = [U[maxRow], U[k]];
+            [P[k], P[maxRow]] = [P[maxRow], P[k]];
+            for (let j = 0; j < k; j++) [L[k][j], L[maxRow][j]] = [L[maxRow][j], L[k][j]];
+        }
+
+        // Eliminación hacia adelante
+        for (let i = k + 1; i < n; i++) {
+            L[i][k] = U[i][k] / U[k][k];
+            for (let j = k; j < n; j++) U[i][j] -= L[i][k] * U[k][j];
+        }
+    }
+
+    // Aplicar permutación al vector b → Pb
+    let pb = P.map(i => b[i]);
+
+    // Sustitución progresiva: Ly = Pb
+    let y = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+        let sum = 0;
+        for (let j = 0; j < i; j++) sum += L[i][j] * y[j];
+        y[i] = pb[i] - sum;
+    }
+
+    // Sustitución regresiva: Ux = y
+    let x = Array(n).fill(0);
+    for (let i = n - 1; i >= 0; i--) {
+        let sum = 0;
+        for (let j = i + 1; j < n; j++) sum += U[i][j] * x[j];
+        x[i] = (y[i] - sum) / U[i][i];
+    }
+    return x;
+}
+
+function solveJacobi(A, b, tol, maxIter) {
+    let x = [0,0,0], errors = [];
+    for (let iter = 0; iter < maxIter; iter++) {
+        let x_new = [0,0,0];
+        for (let i = 0; i < 3; i++) {
+            let sum = 0;
+            for (let j = 0; j < 3; j++) if (j !== i) sum += A[i][j] * x[j];
+            x_new[i] = (b[i] - sum) / A[i][i];
+        }
+        let err = norm(vecSub(x_new, x));
+        errors.push(Math.log10(Math.max(err, 1e-16))); x = x_new;
+        if (!isSafe(err) || err > 1e10) return { x, iter: iter+1, errors, ok: false };
+        if (err < tol) return { x, iter: iter+1, errors, ok: true };
+    }
+    return { x, iter: maxIter, errors, ok: false };
+}
+
+function solveSOR(A, b, w, tol, maxIter) {
+    const n = A.length;
+    // Verificar diagonal no nula antes de iniciar
+    for (let i = 0; i < n; i++) {
+        if (Math.abs(A[i][i]) < 1e-14) return { x: Array(n).fill(0), iter: 0, errors: [], ok: false, steps: [] };
+    }
+    let x = Array(n).fill(0), errors = [], steps = [];
+    for (let iter = 0; iter < maxIter; iter++) {
+        let x_old = [...x];
+        for (let i = 0; i < n; i++) {
+            let sum1 = 0; // usa x ya actualizado (j < i)
+            for (let j = 0; j < i; j++) sum1 += A[i][j] * x[j];
+            let sum2 = 0; // usa x anterior (j > i)
+            for (let j = i + 1; j < n; j++) sum2 += A[i][j] * x_old[j];
+            // Fórmula SOR: x_i = (1-ω)·x_old_i + (ω/a_ii)·(b_i - sum1 - sum2)
+            x[i] = (1 - w) * x_old[i] + (w / A[i][i]) * (b[i] - sum1 - sum2);
+        }
+        // Error: norma de la diferencia entre iteraciones
+        let err = norm(vecSub(x, x_old));
+        // Residual: ‖Ax - b‖ (para el paso a paso)
+        let res = norm(vecSub(matMulVec(A, x), b));
+        errors.push(Math.log10(Math.max(err, 1e-16)));
+        if (iter < 8) steps.push({ iter: iter + 1, x: [...x], err, res });
+        if (!isSafe(err) || err > 1e10) return { x, iter: iter + 1, errors, ok: false, steps };
+        if (err < tol) return { x, iter: iter + 1, errors, ok: true, steps };
+    }
+    return { x, iter: maxIter, errors, ok: false, steps };
+}
+
+// PCG Alineado al PDF de Suñagua
+function solvePCG(A, b, tol, maxIter) {
+    let x = [0,0,0];
+    let r = vecSub(b, matMulVec(A, x)); // r_0 = b - Ax_0
+    
+    // z_0 = M^{-1} r_0 (Donde M es Jacobi: diag(A))
+    let z = [r[0]/A[0][0], r[1]/A[1][1], r[2]/A[2][2]]; 
+    
+    let p = [...z]; // p_0 = z_0
+    let rz = dot(r, z);
+    
+    let errors = [Math.log10(Math.max(norm(r), 1e-16))], steps = [];
+
+    for (let iter = 0; iter < maxIter; iter++) {
+        let Ap = matMulVec(A, p);
+        let pAp = dot(p, Ap);
+        
+        if (Math.abs(pAp) < 1e-15) break; 
+        
+        let alpha = rz / pAp; // alpha_k
+        x = vecAdd(x, vecMult(alpha, p)); // x_{k+1}
+        r = vecSub(r, vecMult(alpha, Ap)); // r_{k+1}
+        
+        let err = norm(r);
+        errors.push(Math.log10(Math.max(err, 1e-16)));
+
+        // Resolver precondicionador: z_{k+1} = M^{-1} r_{k+1}
+        let z_new = [r[0]/A[0][0], r[1]/A[1][1], r[2]/A[2][2]];
+        
+        let rz_new = dot(r, z_new);
+        let beta = rz_new / rz; // beta_k
+
+        if(iter < 6) steps.push({ iter: iter+1, alpha, beta, r: [...r], z: [...z_new], p: [...p], x: [...x], err });
+
+        if (!isSafe(err) || err > 1e10) return { x, iter: iter+1, errors, ok: false, steps };
+        if (err < tol) return { x, iter: iter+1, errors, ok: true, steps };
+
+        p = vecAdd(z_new, vecMult(beta, p)); // p_{k+1}
+        rz = rz_new;
+    }
+    return { x, iter: maxIter, errors, ok: false, steps };
+}
+
+
+// UI Logic
+function selectScenario(index) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        if(i === index) {
+            btn.className = "tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors bg-white text-emerald-700 shadow-sm";
+        } else {
+            btn.className = "tab-btn px-4 py-2 rounded-md text-sm font-medium transition-colors text-slate-600 hover:bg-slate-200";
+        }
+    });
+
+    const s = escenarios[index];
+    document.getElementById('desc').innerHTML = `<strong>Escenario Seleccionado:</strong> ${s.desc}`;
+    document.getElementById('omega').value = s.w;
+    updateOmegaLabel();
+    buildMatrixInputs(s.A, s.b);
+    runAll();
+}
+
+function updateOmegaLabel() {
+    document.getElementById('omega-val').innerText = document.getElementById('omega').value;
+}
+
+function buildMatrixInputs(A, b) {
+    const matDiv = document.getElementById('matA'); matDiv.innerHTML = '';
+    for(let i=0; i<3; i++) {
+        for(let j=0; j<3; j++) {
+            matDiv.innerHTML += `<input type="number" id="a${i}${j}" value="${A[i][j]}" step="0.001" onchange="runAll()" class="mat-inp w-16 text-sm font-mono p-1 border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none">`;
+        }
+    }
+    const vecDiv = document.getElementById('vecB'); vecDiv.innerHTML = '';
+    for(let i=0; i<3; i++) {
+        vecDiv.innerHTML += `<input type="number" id="b${i}" value="${b[i]}" step="0.001" onchange="runAll()" class="mat-inp w-16 text-sm font-mono p-1 border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none">`;
+    }
+}
+
+function runAll() {
+    let A = [[0,0,0],[0,0,0],[0,0,0]], b = [0,0,0];
+    for(let i=0; i<3; i++) {
+        b[i] = parseFloat(document.getElementById(`b${i}`).value) || 0;
+        for(let j=0; j<3; j++) A[i][j] = parseFloat(document.getElementById(`a${i}${j}`).value) || 0;
+    }
+    const tol = parseFloat(document.getElementById('tol').value) || 1e-6;
+    const w = parseFloat(document.getElementById('omega').value) || 1.0;
+
+    let exact = [0,0,0], k = Infinity;
+    try { exact = solveLU(A, b); k = kappaNum(A); } catch(e) {}
+
+    const jac = solveJacobi(A, b, tol, 1000);
+    const gs = solveSOR(A, b, 1.0, tol, 1000);
+    const sor = solveSOR(A, b, w, tol, 1000);
+    const pcg = solvePCG(A, b, tol, 1000);
+
+    // KAPPA UI
+    const kStr = k > 1e10 ? "∞ (Singular)" : k.toFixed(2);
+    const kClass = k > 1000 ? "text-red-600 font-bold" : k > 50 ? "text-amber-600 font-bold" : "text-emerald-600 font-bold";
+    const kMsg = k > 1000 ? "Sistema severamente mal condicionado. Alta inestabilidad iterativa." : "Sistema bien condicionado.";
+    const kappaEl = document.getElementById('kappaRow');
+    kappaEl.innerHTML = `<strong>Número de Condición \\(\\kappa_\\infty(A) \\approx\\) </strong> <span class="${kClass}">${kStr}</span> — ${kMsg}`;
+    if(window.renderMathInElement) renderMathInElement(kappaEl, {delimiters:[{left:'\\(',right:'\\)',display:false}]});
+
+    // TABLE UI
+    const resArr = [
+        {name: 'Factorización LU (Exacta)', data: {iter: '-', ok: true, x: exact}},
+        {name: 'Jacobi', data: jac}, {name: 'Gauss-Seidel', data: gs},
+        {name: `SOR (ω=${w})`, data: sor}, {name: 'Gradiente Conjugado Precond. (PCG)', data: pcg}
+    ];
+    document.getElementById('tblBody').innerHTML = resArr.map(r => {
+        const ok = r.data.ok ? `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-check"></i> SÍ</span>` : `<span class="text-red-600 font-bold"><i class="fa-solid fa-xmark"></i> NO</span>`;
+        const xStr = (r.data.ok || r.name.includes('LU')) && r.data.x.every(isSafe) ? fmtV(r.data.x) : 'Diverge';
+        return `<tr class="hover:bg-slate-50"><td class="py-2 px-4 font-medium">${r.name}</td><td class="py-2 px-4 text-center font-mono">${r.data.iter}</td><td class="py-2 px-4 text-center">${ok}</td><td class="py-2 px-4 text-center font-mono text-xs">${xStr}</td></tr>`;
+    }).join('');
+
+    // STEPS UI
+    document.getElementById('sor-steps').innerHTML = sor.steps.map(s => `<tr><td>${s.iter}</td><td>${s.x[0].toFixed(4)}</td><td>${s.x[1].toFixed(4)}</td><td>${s.x[2].toFixed(4)}</td><td>${s.err>1e6?'∞':s.err.toExponential(2)}</td><td>${s.res>1e6?'∞':s.res.toExponential(2)}</td></tr>`).join('');
+    document.getElementById('pcg-steps').innerHTML = pcg.steps.map(s => `<tr><td>${s.iter}</td><td>${isSafe(s.alpha)?s.alpha.toExponential(2):'-'}</td><td>${s.beta?s.beta.toExponential(2):'-'}</td><td>${fmtV(s.r)}</td><td class="text-blue-700">${fmtV(s.z)}</td><td class="text-emerald-700">${fmtV(s.p)}</td><td class="font-bold">${fmtV(s.x)}</td><td>${s.err>1e6?'∞':s.err.toExponential(2)}</td></tr>`).join('');
+
+    drawChart(jac.errors, gs.errors, sor.errors, pcg.errors);
+    draw3DPlot(A, b, exact);
+}
+
+let lastErrors = { j:[], g:[], s:[], p:[] };
+
+function drawChart(eJ, eG, eS, eP) {
+    lastErrors = { j: eJ, g: eG, s: eS, p: eP };
+    redrawChart();
+}
+
+function redrawChart() {
+    if(cvChart) cvChart.destroy();
+    const showAll = document.getElementById('showAllIter')?.checked;
+    const {j: eJ, g: eG, s: eS, p: eP} = lastErrors;
+    const maxLen = Math.max(eJ.length, eG.length, eS.length, eP.length);
+    const l = showAll ? maxLen : Math.min(maxLen, 50);
+    cvChart = new Chart(document.getElementById('cvChart'), {
+        type: 'line',
+        data: { labels: Array.from({length:l}, (_,i)=>i+1), datasets: [
+            {label: 'Jacobi',  data: eJ.slice(0,l), borderColor: '#f59e0b', borderWidth: 2, pointRadius:0, tension:0.1},
+            {label: 'GS',      data: eG.slice(0,l), borderColor: '#3b82f6', borderWidth: 2, pointRadius:0, tension:0.1},
+            {label: 'SOR',     data: eS.slice(0,l), borderColor: '#8b5cf6', borderWidth: 2, pointRadius:0, tension:0.1},
+            {label: 'PCG',     data: eP.slice(0,l), borderColor: '#10b981', borderWidth: 2, pointRadius:0, tension:0.1}
+        ]},
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels:{boxWidth:10} },
+                title: { display: true, text: `log₁₀(error) — ${l} iteraciones mostradas`, font:{size:10}, color:'#64748b' }
+            },
+            scales: { x: { title:{display:true, text:'Iteración', font:{size:9}} }, y: { title:{display:true, text:'log₁₀(‖Δx‖)', font:{size:9}} } }
+        }
+    });
+}
+
+function draw3DPlot(A, b, exact) {
+    if(!window.Plotly) return;
+    let cx = 0, cy = 0, r = 20;
+    if(exact.every(isSafe)) { cx = exact[0]; cy = exact[1]; r = 10; }
+    const x = [cx-r, cx, cx+r], y = [cy-r, cy, cy+r], tr = [], col = ['Reds', 'Greens', 'Blues'];
+    
+    for (let i=0; i<3; i++) {
+        let z_d = y.map(yv => x.map(xv => (b[i] - A[i][0]*xv - A[i][1]*yv)/(A[i][2]||1e-10)));
+        tr.push({ type: 'surface', x: x, y: y, z: z_d, colorscale: col[i], showscale: false, opacity: 0.8 });
+    }
+    if(exact.every(isSafe)) tr.push({ type: 'scatter3d', mode: 'markers', x: [exact[0]], y: [exact[1]], z: [exact[2]], marker: { size: 6, color: '#000' }});
+    Plotly.newPlot('plot3d', tr, { margin: {l:0,r:0,b:0,t:0}, scene: {xaxis:{title:'x1'}, yaxis:{title:'x2'}, zaxis:{title:'x3'}} }, {displayModeBar: false});
+}
+
+window.onload = () => {
+    selectScenario(0);
+    if(window.renderMathInElement) {
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: '\\(', right: '\\)', display: false},
+                {left: '$', right: '$', display: false}
+            ]
+        });
+    }
+};
+</script>
+</body>
+</html>
