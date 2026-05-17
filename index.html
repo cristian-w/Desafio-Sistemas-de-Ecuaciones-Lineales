@@ -60,7 +60,7 @@
                     <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
                     <h2 class="text-lg font-semibold">Contexto del Escenario</h2>
                 </div>
-                <p id="desc" class="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border-l-4 border-emerald-500"></p>
+                <p id="desc" class="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border-l-4 border-blue-500"></p>
                 
                 <div class="text-sm text-slate-700">
                     <p class="font-semibold mb-1">Variables ($x_n$):</p>
@@ -104,6 +104,13 @@
                         <input type="number" id="tol" value="0.000001" step="0.000001" class="w-full text-sm font-mono p-1 border border-slate-300 rounded focus:ring-emerald-500 outline-none" onchange="runAll()">
                     </div>
                 </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
+                    <h2 class="text-lg font-semibold">Solución en el contexto del problema</h2>
+                </div>
+                <p id="sol" class="text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg border-l-4 border-emerald-500"></p>
             </div>
         </div>
 
@@ -204,19 +211,22 @@ const escenarios = [
         desc: "Sistema Estable. Matriz diagonalmente dominante que asegura la rápida convergencia de métodos iterativos.",
         A: [[2.45, -0.85, -0.55], [-0.85, 1.95, -0.35], [-0.55, -0.35, 1.45]],
         b: [12.50, 5.20, 3.80],
-        w: 1.05
+        w: 1.05,
+        sol: "<strong>Caso Ideal:</strong> La solución (x<sub>1</sub> &approx; 9.96, x<sub>2</sub> &approx; 8.52, x<sub>3</sub> &approx; 8.46) indica que en condiciones óptimas, la rana estabiliza la toxina manteniendo una mayor concentración circulando en el plasma (x<sub>1</sub>) que la almacenada en los órganos (x<sub>2</sub>, x<sub>3</sub>). Representa un equilibrio fisiológico natural, sano y robusto."
     },
     {
         desc: "Estrés Térmico. Mayor magnitud de tasas de intercambio, pero mantiene estabilidad estructural (bien condicionado).",
         A: [[28.50, -12.40, -8.20], [-12.40, 22.80, -5.10], [-8.20, -5.10, 18.60]],
         b: [145.00, 85.50, 62.00],
-        w: 1.15
+        w: 1.15,
+        sol: "<strong>Bajo Estrés:</strong> La solución (x<sub>1</sub> &approx; 16.3, x<sub>2</sub> &approx; 15.9, x<sub>3</sub> &approx; 14.9) demuestra que bajo estrés por calor, el nuevo punto de equilibrio del animal es mucho más alto. La concentración de toxina almacenada en el hígado y la piel casi iguala a la del plasma, indicando una saturación tisular defensiva ante la hiperactividad metabólica."
     },
     {
         desc: "Mal Condicionado VERDADERO. El tejido hepático y dérmico son casi idénticos. Las filas 2 y 3 son 99.9% proporcionales, generando un determinante cercano a cero y planos superpuestos.",
         A: [[5.000, -2.000, -2.000], [-2.000, 3.000, 2.999], [-2.000, 2.999, 3.000]],
         b: [1.00, 3.999, 3.999],
-        w: 1.01
+        w: 1.01,
+        sol: "<strong>Mal condicionado:</strong> Aunque matemáticamente la solución base es x = [1, 1, 1]<sup>T</sup>, el mal condicionamiento del sistema advierte sobre una grave vulnerabilidad de supervivencia. El animal carece de mecanismos de amortiguación: una mínima alteración ambiental o dietética (cambio mínimo en b) dispararía el punto de equilibrio a niveles tóxicos de forma impredecible. Es un estado de inestabilidad fisiológica extrema."
     }
 ];
 
@@ -408,6 +418,7 @@ function selectScenario(index) {
 
     const s = escenarios[index];
     document.getElementById('desc').innerHTML = `<strong>Escenario Seleccionado:</strong> ${s.desc}`;
+    document.getElementById('sol').innerHTML = s.sol;
     document.getElementById('omega').value = s.w;
     updateOmegaLabel();
     buildMatrixInputs(s.A, s.b);
